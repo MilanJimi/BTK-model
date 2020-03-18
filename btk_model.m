@@ -207,6 +207,7 @@ classdef btk_model<handle
             dIdV2 = [];
             dIdV_Polarization = zeros([1 Npoints]);
             
+            polarizationGap = 1e-3*DGZW(9)
             precalculateBar(obj,DGZW(1:3));
             
             index = 1;
@@ -409,21 +410,26 @@ classdef btk_model<handle
             gam = (a1+Z2*c)^2 + (b*(2*Z2+1))^2;
             A = sqrt((a1*a1+b*b)*(a2*a2+b*b));
             B = (Z2*c-2*zParam*b)^2 + (zParam*(2*zParam*b+c))^2;
-            disp(A + B)
             transportProbability = 1 + (A-B)/gam;
         end;
         
         function transportProbability = btkTunnelProbability_polarized(E)
-            global Z2;
+            global zParam Z2 polarizationGap deltaParam;
 
             [b,c] = btk_model.DensityOfStates(E);
             
             a1 = (1+c)/2;
             b = -b/2; 
             gam = (a1+Z2*c)^2 + (b*(2*Z2+1))^2;
+            disp(abs(E) - deltaParam)
+            if abs(E) < deltaParam
             A = 0;
             B = 1;
-            transportProbability = 2 + (A-B)/gam;
+        else 
+            A = 0;
+            B = (Z2*c-2*zParam*b)^2 + (zParam*(2*zParam*b+c))^2;
+        end;
+            transportProbability = 1 + (A-B)/gam;
         end;
         
         function transportProbability = tun_prob(E,d,F,U) % E [eV], U [V]
