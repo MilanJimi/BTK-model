@@ -1,0 +1,461 @@
+classdef btk_model<handle
+    properties (SetAccess = private)
+    end
+
+    properties (SetAccess = public)
+        F1 = 0;
+        F2 = 0;
+        A  = 0;
+        d  = 0;
+    end
+    
+    methods
+        function obj = btk_model(energyRange,Nprecis)
+            global Npoints N_FACT BAR_N_PARTS divN_PARTS divN1_PARTS div2N_PARTS;
+
+            Npoints = Nprecis-1;
+            BAR_N_PARTS = 10;
+            divN_PARTS = 1/BAR_N_PARTS;
+            divN1_PARTS = 1/(BAR_N_PARTS-1);
+            div2N_PARTS = 0.5*divN_PARTS;
+            N_FACT = 5;
+            
+            global k NF vF e;
+            
+            k = 8.617347e-5;
+            NF = 1e27;
+            vF = 1e5;
+            e  = 1.6e-19;
+            
+            global energyComputationRange Eint_rng Emax_rng dE dE_2 N Nhalf T;
+            global energiesTable energiesFineTable derivatedFermiFunction normalizedDerivatedFermiFunction transportProbability;
+
+            energyComputationRange = energyRange;
+            Eint_rng = (N_FACT-1)*energyRange;
+            Emax_rng = N_FACT*energyRange;
+            N = 0;
+            Nhalf = 0;
+            dE = 0;
+            dE_2 = 0;
+            T = 0;
+            energiesTable = [];  % tabulka dostupnych diskretnych energii (energiesTable(N/2) = 0)
+            energiesFineTable = []; % jemnejsia tabulka energii, kde je zratana Fermiho funkcia
+            derivatedFermiFunction = [];
+            normalizedDerivatedFermiFunction = []; % predratana derivacia fermiho funkcie normovanej tak, aby integral bol 1
+            transportProbability = [];  % pravdepodobnosti prechodu cez barieru pre energiesTable(:)
+        end
+        
+        function obj = setTemp(obj,temperature)
+            global Npoints Emax_rng invdE dE dE_2 N Nhalf k ikT kT T Ei1 Ei2;
+            global N_FACT energiesTable normalizedDerivatedFermiFunction;
+            
+            T = temperature;
+            kT = k*T;
+            ikT = 1/kT;
+            
+            Nhalf = round(N_FACT*Npoints/2);
+            N = 2*Nhalf;
+            dE = 2*Emax_rng/N;
+            dE_2 = Emax_rng/N;
+            invdE = 1/dE;
+            energiesTable = zeros([1 N]);
+            derivatedFermiFunction = zeros([1 N]);
+            normalizedDerivatedFermiFunction = zeros([1 N]);
+            
+            akT = 0.01*kT;
+            D = 1-4*akT;
+            Emin = kT*log((1-2*akT-sqrt(D))/(2*akT));
+            Emax = kT*log((1-2*akT+sqrt(D))/(2*akT));
+            
+            Ei1 = 0;
+            Ei2 = 0;
+            dE_10 = dE/10;
+            for i=1:N
+                % dE/2 je kvoli tomu, aby tam nebola nulova hodnota a aby som nemusel osetrovat delenie nulou
+                E = -Emax_rng + i*dE - dE_2;
+                energiesTable(i) = E;
+                if (Ei1==0) && (E+dE>=Emin) 
+                    Ei1 = i;
+                end;
+                
+                if (Ei1>0) && (Ei2==0)
+                    E1 = E - dE_2;
+                    E2 = E + dE_2;
+                    ff = 0;
+                    nff = 0;
+                    for Ej=E1:dE_10:E2
+                        [tmp,dff] = obj.FermiFun(Ej);
+                        ff = ff + dff;
+                        nff = nff+1;
+                    end;
+                    derivatedFermiFunction(i) = ff/nff;
+%                     [ft,derivatedFermiFunction(i)] = obj.FermiFun(energiesTable(i));
+                else
+                    derivatedFermiFunction(i) = 0;
+                end;
+                
+                if (Ei2==0) && (E>=Emax) 
+                    Ei2 = i;
+                end;
+            end;
+            % Normalize
+            normalizedDerivatedFermiFunction = derivatedFermiFunction/sum(derivatedFermiFunction);
+%             Ei2-Ei1
+        end;
+        
+        function obj = precalculateBar(obj,DGZ)
+            
+            global zParam deltaParam gParam Z2 D2 G2;
+            
+            deltaParam = 1e-3*DGZ(1);
+            zParam = DGZ(2);
+            gParam = 1e-3*DGZ(3);
+            D2 = deltaParam*deltaParam;
+            Z2 = zParam*zParam;
+            G2 = gParam*gParam;
+
+            global N Nhalf invdE energiesTable transportProbability;
+            
+            [m,n] = size(energiesTable);
+            transportProbability = zeros([m,n]);
+            dE = 1/invdE;
+            dE_20 = dE/20;
+            for i=1:Nhalf
+                E = energiesTable(i);
+                % pravdepodobnost prechodu cez barieru pre zaporne energie (|E| < Delta)
+                if (i>1) && (energiesTable(i)>-10*deltaParam)
+                    Ebot = (energiesTable(i-1) + E)/2;
+                    Etop = (energiesTable(i+1) + E)/2;
+                    tProbability = 0;
+                    fineProbabilitySamples = 0;
+                    % 20x jemnejsi integral
+                    for Ej=Ebot:dE_20:Etop
+                        tProbability = tProbability + obj.btkTunnelProbability(Ej);
+                        fineProbabilitySamples = fineProbabilitySamples+1;
+                    end;
+                    transportProbability(i) = tProbability/fineProbabilitySamples;
+                else
+                    % pravdepodobnost prechodu cez barieru pre kladne energie (|E| > Delta)
+                    transportProbability(i) = obj.btkTunnelProbability(energiesTable(i));
+                end;
+                % Pravdepodobnost je symetricka
+                transportProbability(N-i+1) = transportProbability(i);
+                % fprintf('%d \n',transportProbability(i));
+            end;
+        end;
+        
+        function obj = precalculateBarForPolarization(obj,DGZ)
+            
+            global zParam deltaParam gParam Z2 D2 G2;
+            
+            deltaParam = 1e-3*DGZ(1);
+            zParam = DGZ(2);
+            gParam = 1e-3*DGZ(3);
+            D2 = deltaParam*deltaParam;
+            Z2 = zParam*zParam;
+            G2 = gParam*gParam;
+
+            global N Nhalf invdE energiesTable transportProbability;
+            
+            [m,n] = size(energiesTable);
+            transportProbability = zeros([m,n]);
+            dE = 1/invdE;
+            dE_10 = dE/20;
+            for i=1:Nhalf
+                E = energiesTable(i);
+                % pravdepodobnost prechodu cez barieru pre zaporne energie
+                if (i>1) && (energiesTable(i)>-10*deltaParam)
+                    E1 = (energiesTable(i-1) + E)/2;
+                    E2 = (energiesTable(i+1) + E)/2;
+                    tp = 0;
+                    ntp = 0;
+                    for Ej=E1:dE_10:E2
+                       tp = tp + obj.btkTunnelProbability_polarized(Ej);
+                        ntp = ntp+1;
+                    end;
+                    transportProbability(i) = tp/ntp;
+                else
+                    transportProbability(i) = obj.btkTunnelProbability_polarized(energiesTable(i));
+                end;
+                % pravdepodobnost prechodu cez barieru pre kladne energie
+                transportProbability(N-i+1) =  transportProbability(i);
+            end;
+        end;
+        
+        function dIdV = localDeriv(obj,V)
+            global invdE Z2 Ei1 Ei2 normalizedDerivatedFermiFunction transportProbability;
+            
+            intg = 0;
+            
+            Vi = floor(V*invdE);
+            for i = Ei1:Ei2
+                i_bias = i+Vi;%max(1,min(i+Vi,N));
+                intg = intg + normalizedDerivatedFermiFunction(i)*transportProbability(i_bias);
+            end;
+            
+            dIdV = (1 + Z2)*intg;
+        end;
+        
+        function [V,dIdV] = calcDiffChar(obj,hWait,DGZW)
+            
+            global energyComputationRange invdE energiesTable;
+            
+            [m,n] = size(energiesTable);
+            Npoints = round(2*energyComputationRange*invdE);
+            V = zeros([1 Npoints]);
+            dIdV1 = zeros([1 Npoints]);
+            dIdV2 = [];
+            dIdV_Polarization = zeros([1 Npoints]);
+            
+            precalculateBar(obj,DGZW(1:3));
+            
+            index = 1;
+            for i=1:n/2
+                if (energiesTable(i)>=-energyComputationRange) && (energiesTable(i)<=0)
+                    % prva polovicka diferecialky
+                    V(index) = energiesTable(i);
+                    dIdV1(index) = obj.localDeriv(energiesTable(i));
+                    % druha polovicka je zrkadlovy obraz
+                    V(Npoints-index+1) = -V(index);
+                    dIdV1(Npoints-index+1) = dIdV1(index);
+                    index = index+1;
+                end;
+                if hWait~=0
+                    waitbar(i/n,hWait);
+                end;
+            end;
+            
+            W = DGZW(7);
+            if W>0
+                dIdV2 = zeros([1 Npoints]);
+                
+                precalculateBar(obj,DGZW(4:6));
+
+                index = 1;
+                for i=1:n/2
+                    if (energiesTable(i)>=-energyComputationRange) && (energiesTable(i)<=0)
+                        dIdV2(index) = obj.localDeriv(energiesTable(i));
+                        dIdV2(Npoints-index+1) = dIdV2(index);
+                        index = index+1;
+                    end;
+                    if hWait~=0
+                        waitbar(i/n,hWait);
+                    end;
+                end;
+            end; 
+            
+            if isempty(dIdV2)
+                dIdV_PrePolarization = dIdV1;
+            else
+                dIdV_PrePolarization = (1-W)*dIdV1 + W*dIdV2;
+            end;
+            
+            P = DGZW(8);
+            
+            precalculateBarForPolarization(obj,DGZW(1:3));
+            index = 1;
+            for i=1:n/2
+                if (energiesTable(i)>=-energyComputationRange) && (energiesTable(i)<=0)
+                    V(index) = energiesTable(i);
+                    dIdV_Polarization(index) = obj.localDeriv(energiesTable(i));
+                    V(Npoints-index+1) = -V(index);
+                    dIdV_Polarization(Npoints-index+1) = dIdV_Polarization(index);
+                    index = index+1;
+                end;
+                if hWait~=0
+                    waitbar(i/n,hWait);
+                end;
+            end;
+                
+            
+            dIdV = (1-P)*dIdV_PrePolarization + P*dIdV_Polarization;
+        end;
+        
+        function [dIdV_norm,Rsquared,VARres,Scale,Shift] = normDiffChar(obj,X,Y,V,dIdV)
+            
+            global energyComputationRange;
+            
+            NormTilde = 1.0;
+            BTKTilde  = 1.0;
+            Scale     = 1.0;
+            Eover     = 0.9*energyComputationRange;
+            
+            Ys = Y(abs(X)>Eover);
+            Ns = length(Ys);
+            if Ns>0
+                NormTilde = sum(Ys)/Ns;
+            end;
+            
+            Ys = dIdV(abs(V)>Eover);
+            Ns = length(Ys);
+            if Ns>0
+                BTKTilde  = sum(Ys)/Ns;
+            end;
+            
+            Xs = X(abs(X)<Eover);
+            Ys = Y(abs(X)<Eover);
+            Ns = length(Xs);
+            Ymean = mean(Ys);
+            SStot = sum((Ys - Ymean).^2);
+            Yf = interp1(V,dIdV,Xs','linear');
+            SSres = sum((Ys - Yf').^2);
+            Rsquared = 1 - SSres/SStot;
+            VARres = SSres/Ns;
+            
+            NormMax = max(Y);
+            BTKMax  = max(dIdV);
+            if (BTKMax~=BTKTilde)
+%                 Scale = (NormMax-NormTilde)/(BTKMax-BTKTilde);
+%                 Scale = max(0.01,min(Scale,1.0));
+                Scale = 1;
+            end;
+            Shift = Scale*(BTKTilde-1)+1-NormTilde;
+            
+            dIdV_norm = Scale*(dIdV-1)+1-Shift;
+        end;
+        
+        function Temp = getTemp(obj)
+            global T;
+            Temp = T;
+        end;
+        
+        function I = localBgCurrent(obj,A,d,F,dF,U)
+            [m,n] = size(obj.energiesTable);
+            intg = 0;
+            Uabs = abs(U);
+            Ustp = Uabs/100;
+            for i=0:Ustp:Uabs
+%                P = obj.tun_prob(i,d,F,U);
+                P = obj.asym_tun_prob(i,d,F,dF,U);
+                intg = intg + P*Ustp;
+            end;
+            I = (A*1E-12)*obj.NF*obj.e*obj.vF*intg*sign(U);
+        end;
+
+        function [V,dIdV] = calcBgDiffChar(obj,A,d,F,dF)
+            [m,n] = size(obj.energiesTable);
+            energyRange = obj.energyComputationRange;
+            Estp = energyRange/20;
+            Npoints = round(2*energyRange/Estp)+1;
+            V = zeros([1 Npoints]);
+            IV = zeros([1 Npoints]);
+            dIdV = zeros([1 Npoints]);
+            index = 1;
+            for i=-energyRange:Estp:energyRange
+                V(index) = i;
+                IV(index) = obj.localBgCurrent(A,d,F,dF,i);
+                index = index+1;
+            end;
+            invdE2 = 1/(2*Estp);
+            for i=2:Npoints-1
+                dIdV(i) = (IV(i+1)-IV(i-1))*invdE2;
+            end;
+            V(Npoints)=[];
+            dIdV(Npoints)=[];
+            V(1)=[];
+            dIdV(1)=[];
+        end;
+    end
+    
+    methods(Static)
+        function [f,df] = FermiFun(E)
+            global ikT;
+            ex = exp(E*ikT);
+            if ex==Inf
+                f=0;
+                df=0;
+                return;
+            end;
+            f = 1./(1 + ex);
+            if nargout>1
+                df = f.*f.*ex.*ikT;
+            end;
+        end;
+
+        function [f,df] = biasFermiFun(E,V)
+            global ikT;
+            ex = exp((E-V)*ikT);
+            f = 1/(1 + ex);
+            if nargout>1
+                df = f*f*ex*ikT;
+            end;
+        end;
+
+        function [Nsin,Ncos] = DensOfStates(E)
+            global gParam D2 G2;
+            
+            E2 = E*E;
+            E = abs(E);
+            Fi = atan2(-gParam,E) - atan2(-2*gParam*E,E2-G2-D2)/2;
+            invNamp = sqrt(sqrt((E2-G2-D2)^2 + 4*E2*G2)/(E2+G2));
+            Ncos = cos(Fi)*invNamp;
+            Nsin = sin(Fi)*invNamp;
+        end;
+
+        function transportProbability = btkTunnelProbability(E)
+            global zParam Z2;
+
+            [b,c] = btk_model.DensOfStates(E);
+            
+            a1 = (1+c)/2;
+            a2 = (1-c)/2;
+            b = -b/2; 
+            gam = (a1+Z2*c)^2 + (b*(2*Z2+1))^2;
+            A = sqrt((a1*a1+b*b)*(a2*a2+b*b));
+            B = (Z2*c-2*zParam*b)^2 + (zParam*(2*zParam*b+c))^2;
+            transportProbability = 1 + (A-B)/gam;
+        end;
+        
+        function transportProbability = btkTunnelProbability_polarized(E)
+            global Z2;
+
+            [b,c] = btk_model.DensOfStates(E);
+            
+            a1 = (1+c)/2;
+            b = -b/2; 
+            gam = (a1+Z2*c)^2 + (b*(2*Z2+1))^2;
+            A = 0;
+            B = 1;
+            transportProbability = 2 + (A-B)/gam;
+        end;
+        
+        function transportProbability = tun_prob(E,d,F,U) % E [eV], U [V]
+            global BAR_N_PARTS divN_PARTS div2N_PARTS;
+            
+            U = abs(U);
+            if (E<F+U/2)
+                dd = d*divN_PARTS;
+                arg=zeros([1 BAR_N_PARTS]);
+                for i=1:BAR_N_PARTS
+                    arg(i) = sqrt(F + U*(2*i-1)*div2N_PARTS - E)*dd;
+                end;
+                transportProbability = exp(-sum(arg));
+            else
+                transportProbability = 1;
+            end;
+        end;
+
+        function transportProbability = asym_tun_prob(E,d,F1,dF12,U) % E [eV], U [V]
+            global BAR_N_PARTS divN_PARTS divN1_PARTS div2N_PARTS;
+            
+            if (U>0)
+                F = F1;
+                dF = dF12;
+            else
+                F = F1 + dF12;
+                dF = -dF12;
+            end;
+            U = abs(U);
+            if (E<F+U/2)
+                dd = d*divN_PARTS;
+                arg=zeros([1 BAR_N_PARTS]);
+                for i=1:BAR_N_PARTS
+                    arg(i) = sqrt(F + (i-1)*divN1_PARTS*dF + U*(2*i-1)*div2N_PARTS - E)*dd;
+                end;
+                transportProbability = exp(-sum(arg));
+            else
+                transportProbability = 1;
+            end;
+        end;
+    end;
+end
