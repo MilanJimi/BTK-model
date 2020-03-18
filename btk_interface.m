@@ -29,7 +29,7 @@ function btk_interface_OpeningFcn(hObject, eventdata, handles, varargin)
     % UIWAIT makes btk_interface wait for user response (see UIRESUME)
     % uiwait(handles.figure1);
     
-    global ID_D1 ID_D2 ID_W ID_P ID_Z1 ID_Z2 ID_G1 ID_G2;
+    global ID_D1 ID_D2 ID_W ID_P ID_PD ID_Z1 ID_Z2 ID_G1 ID_G2;
     global lastPos BTKmodel BTKparams parentHnds ChanData;
     
     parentHnds = varargin{1};
@@ -58,6 +58,7 @@ function btk_interface_OpeningFcn(hObject, eventdata, handles, varargin)
         setValue(handles.eGama2,handles.sGama2,BTKparams.DGZW(ID_G2),'meV');
         setValue(handles.eWeight,handles.sWeight,BTKparams.DGZW(ID_W));
         setValue(handles.ePolarization,handles.sPolarization,BTKparams.DGZW(ID_P));
+        setValue(handles.ePolarizationGap,handles.sPolarizationGap,BTKparams.DGZW(ID_PD), 'meV');
         setValue(handles.eTemp,0,BTKparams.T,'K');
         
         if ChanData{3}.count==0
@@ -65,6 +66,7 @@ function btk_interface_OpeningFcn(hObject, eventdata, handles, varargin)
             set(handles.bDelta2,'Enable','off');
             set(handles.bWeight,'Enable','off');
             set(handles.bPolarization,'Enable','off');
+            set(handles.bPolarizationGap,'Enable','off');
             set(handles.bZet1,'Enable','off');
             set(handles.bZet2,'Enable','off');
             set(handles.bGama1,'Enable','off');
@@ -181,6 +183,11 @@ function bPolarization_Callback(hObject, eventdata, handles)
 
     global ID_P;
     optimizeParameter(handles,ID_P,'Polarization','');
+
+function bPolarizationGap_Callback(hObject, eventdata, handles)
+    
+    global ID_PD;
+    optimizeParameter(handles,ID_PD,'PolarizationGap','');
 
 function bZet1_Callback(hObject, eventdata, handles)
 
@@ -302,6 +309,12 @@ function sPolarization_Callback(hObject, eventdata, handles)
 
     global ID_P;
     setControl(handles,{ID_P},{'Polarization'},'');
+    
+function sPolarizationGap_Callback(hObject, eventdata, handles)
+
+    global ID_PD;
+    setControl(handles,{ID_PD},{'PolarizationGap'},'');
+
 
 function sGama1_Callback(hObject, eventdata, handles)
 
@@ -349,6 +362,8 @@ function sWeight_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 function sPolarization_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor',[.9 .9 .9]);
+function sPolarizationGap_CreateFcn(hObject, eventdata, handles)
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
 
 
 function eDelta1_Callback(hObject, eventdata, handles)
@@ -372,6 +387,10 @@ function ePolarization_Callback(hObject, eventdata, handles)
     global ID_P;
     setControlByEdit(handles,{ID_P},{'Polarization'},'');
     
+function ePolarizationGap_Callback(hObject, eventdata, handles)
+
+    global ID_PD;
+    setControlByEdit(handles,{ID_PD},{'PolarizationGap'},'');
 function eZet1_Callback(hObject, eventdata, handles)
 
     global ID_Z1 ID_Z2;
@@ -409,6 +428,8 @@ function eDelta2_CreateFcn(hObject, eventdata, handles)
 function eWeight_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor','white');
 function ePolarization_CreateFcn(hObject, eventdata, handles)
+    set(hObject,'BackgroundColor','white');
+function ePolarizationGap_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor','white');
 function eZet1_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor','white');

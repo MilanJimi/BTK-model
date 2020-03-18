@@ -381,35 +381,42 @@ classdef btk_model<handle
             end;
         end;
 
-        function [Nsin,Ncos] = DensOfStates(E)
+        % Denstiy of States = DOS
+        function [iDOS,reDOS] = DensityOfStates(E)
             global gParam D2 G2;
             
             E2 = E*E;
             E = abs(E);
+
+            % Bogobliubovova aproximácia tlmenia E -> E-i*Gamma
+            % Uhol Fí
             Fi = atan2(-gParam,E) - atan2(-2*gParam*E,E2-G2-D2)/2;
+            % Absolútna hodnota DOS
             invNamp = sqrt(sqrt((E2-G2-D2)^2 + 4*E2*G2)/(E2+G2));
-            Ncos = cos(Fi)*invNamp;
-            Nsin = sin(Fi)*invNamp;
+
+            % Imaginárna a reálna hustota stavov
+            iDOS = sin(Fi)*invNamp;
+            reDOS = cos(Fi)*invNamp;
         end;
 
         function transportProbability = btkTunnelProbability(E)
             global zParam Z2;
 
-            [b,c] = btk_model.DensOfStates(E);
-            
+            [b,c] = btk_model.DensityOfStates(E);
             a1 = (1+c)/2;
             a2 = (1-c)/2;
             b = -b/2; 
             gam = (a1+Z2*c)^2 + (b*(2*Z2+1))^2;
             A = sqrt((a1*a1+b*b)*(a2*a2+b*b));
             B = (Z2*c-2*zParam*b)^2 + (zParam*(2*zParam*b+c))^2;
+            disp(A + B)
             transportProbability = 1 + (A-B)/gam;
         end;
         
         function transportProbability = btkTunnelProbability_polarized(E)
             global Z2;
 
-            [b,c] = btk_model.DensOfStates(E);
+            [b,c] = btk_model.DensityOfStates(E);
             
             a1 = (1+c)/2;
             b = -b/2; 

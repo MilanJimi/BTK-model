@@ -26,7 +26,7 @@ function main2_OpeningFcn(hObject, eventdata, handles, varargin)
     % Update handles structure
     guidata(hObject, handles);
 
-    global ID_D1 ID_D2 ID_W ID_Z1 ID_Z2 ID_G1 ID_G2 ID_P;
+    global ID_D1 ID_D2 ID_W ID_Z1 ID_Z2 ID_G1 ID_G2 ID_P ID_PD;
     
     ID_D1 = 1;
     ID_Z1 = 2;
@@ -36,6 +36,7 @@ function main2_OpeningFcn(hObject, eventdata, handles, varargin)
     ID_G2 = 6;
     ID_W  = 7;
     ID_P = 8;
+    ID_PD = 9;
     
     global ARR_COLOR BG_COLOR;
     ARR_COLOR = [0.5 0.5 0.5];
@@ -73,7 +74,7 @@ function mainFigure_CreateFcn(hObject, eventdata, handles)
     global DataFile ChanData BTKmodel BTKparams btk_hwnd Polyfit;
     
     BTKmodel = 0;
-    BTKparams.DGZW = [5 0 0 0 0 0 0 0];
+    BTKparams.DGZW = [5 0 0 0 0 0 0 0 5];
     BTKparams.T = 10;
     BTKparams.R2 = 0;
     BTKparams.N = 100;
@@ -1291,7 +1292,7 @@ function expFN=exportChannel(handles,chan_id)
 function bExport_Callback(hObject, eventdata, handles)
 
     global DataFile BTKparams Polyfit;
-    global ID_D1 ID_D2 ID_W ID_Z1 ID_Z2 ID_G1 ID_G2 ID_P;
+    global ID_D1 ID_D2 ID_W ID_Z1 ID_Z2 ID_G1 ID_G2 ID_P ID_PD;
     
     if (DataFile==0)
         msgbox('Nothing to export!','Warning','warn','modal');
@@ -1348,6 +1349,7 @@ function bExport_Callback(hObject, eventdata, handles)
             fprintf(fid, 'Zet2:    %.3f \n', BTKparams.DGZW(ID_Z2));
             fprintf(fid, 'Gamma2:  %.3f meV\n', BTKparams.DGZW(ID_G2));
             fprintf(fid, 'Polarization:  %.3f \n', BTKparams.DGZW(ID_P));
+            fprintf(fid, 'Polarization gap:  %.3f meV\n', BTKparams.DGZW(ID_PD));
             fclose(fid);
             
             if get(handles.cbUseComma,'Value')
