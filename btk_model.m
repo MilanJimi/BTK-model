@@ -140,7 +140,6 @@ classdef btk_model<handle
                 end;
                 % Pravdepodobnost je symetricka
                 transportProbability(N-i+1) = transportProbability(i);
-                % fprintf('%d \n',transportProbability(i));
             end;
         end;
         
