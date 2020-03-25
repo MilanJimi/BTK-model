@@ -207,7 +207,7 @@ classdef btk_model<handle
             dIdV2 = [];
             dIdV_Polarization = zeros([1 Npoints]);
             
-            polarizationGap = 1e-3*DGZW(9)
+            polarizationGap = 1e-3*DGZW(9);
             precalculateBar(obj,DGZW(1:3));
             
             index = 1;
@@ -382,46 +382,37 @@ classdef btk_model<handle
             end;
         end;
 
-        % Denstiy of States = DOS
-        function [iDOS,reDOS] = DensityOfStates(E)
-            global gParam D2 G2;
+        
+        % Generalization of the BTK Theory to the Case of Finite Quasiparticle Lifetimes
+        % Yousef Rohanizadegan
+        function [uSquared, vSquared] = getCoherenceFactorSquares(E)
+            global gParam D2;
+            dampedE = abs(E)-i*gParam;
             
-            E2 = E*E;
-            E = abs(E);
-
-            % Bogobliubovova aproximácia tlmenia E -> E-i*Gamma
-            % Uhol Fí
-            Fi = atan2(-gParam,E) - atan2(-2*gParam*E,E2-G2-D2)/2;
-            % Absolútna hodnota DOS
-            invNamp = sqrt(sqrt((E2-G2-D2)^2 + 4*E2*G2)/(E2+G2));
-
-            % Imaginárna a reálna hustota stavov
-            iDOS = sin(Fi)*invNamp;
-            reDOS = cos(Fi)*invNamp;
+            uSquared = (1 + sqrt(dampedE^2 - D2)/dampedE)/2;
+            vSquared = 1 - uSquared;
         end;
 
         function transportProbability = btkTunnelProbability(E)
-            global zParam Z2;
+            global zParam Z2 deltaParam;
+            [u0Squared, v0Squared] = btk_model.getCoherenceFactorSquares(E);
+           
+            gammaSquared = (u0Squared + (u0Squared - v0Squared)*Z2)^2;
+            A = (abs(u0Squared)*abs(v0Squared))/abs(gammaSquared);
+            B = (Z2*(Z2 + 1)*(abs(u0Squared) - abs(v0Squared))^2)/abs(gammaSquared);
 
-            [b,c] = btk_model.DensityOfStates(E);
-            a1 = (1+c)/2;
-            a2 = (1-c)/2;
-            b = -b/2; 
-            gam = (a1+Z2*c)^2 + (b*(2*Z2+1))^2;
-            A = sqrt((a1*a1+b*b)*(a2*a2+b*b));
-            B = (Z2*c-2*zParam*b)^2 + (zParam*(2*zParam*b+c))^2;
-            transportProbability = 1 + (A-B)/gam;
+            transportProbability = 1 + A - B;
         end;
+        
         
         function transportProbability = btkTunnelProbability_polarized(E)
             global zParam Z2 polarizationGap deltaParam;
 
-            [b,c] = btk_model.DensityOfStates(E);
+            [b,c] = btk_model.getCoherenceFactorSquares(E);
             
             a1 = (1+c)/2;
             b = -b/2; 
             gam = (a1+Z2*c)^2 + (b*(2*Z2+1))^2;
-            disp(abs(E) - deltaParam)
             if abs(E) < deltaParam
             A = 0;
             B = 1;
