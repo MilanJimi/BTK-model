@@ -103,7 +103,7 @@ classdef btk_model<handle
 %             Ei2-Ei1
         end;
         
-        function obj = precalculateBar(obj,DGZ)
+        function obj = precalculateBar(obj,DGZ, polarizationGap)
             
             global zParam deltaParam gParam Z2 D2 G2;
             
@@ -130,20 +130,20 @@ classdef btk_model<handle
                     fineProbabilitySamples = 0;
                     % 20x jemnejsi integral
                     for Ej=Ebot:dE_20:Etop
-                        tProbability = tProbability + obj.btkTunnelProbability(Ej);
+                        tProbability = tProbability + obj.btkTunnelProbability(Ej, polarizationGap);
                         fineProbabilitySamples = fineProbabilitySamples+1;
                     end;
                     transportProbability(i) = tProbability/fineProbabilitySamples;
                 else
                     % pravdepodobnost prechodu cez barieru pre kladne energie (|E| > Delta)
-                    transportProbability(i) = obj.btkTunnelProbability(energiesTable(i));
+                    transportProbability(i) = obj.btkTunnelProbability(energiesTable(i), polarizationGap);
                 end;
                 % Pravdepodobnost je symetricka
                 transportProbability(N-i+1) = transportProbability(i);
             end;
         end;
         
-        function obj = precalculateBarForPolarization(obj,DGZ)
+        function obj = precalculateBarForPolarization(obj,DGZ, polarizationGap)
             
             global zParam deltaParam gParam Z2 D2 G2;
             
@@ -169,12 +169,12 @@ classdef btk_model<handle
                     tp = 0;
                     ntp = 0;
                     for Ej=E1:dE_10:E2
-                       tp = tp + obj.btkTunnelProbability_polarized(Ej);
+                       tp = tp + obj.btkTunnelProbability_polarized(Ej, polarizationGap);
                         ntp = ntp+1;
                     end;
                     transportProbability(i) = tp/ntp;
                 else
-                    transportProbability(i) = obj.btkTunnelProbability_polarized(energiesTable(i));
+                    transportProbability(i) = obj.btkTunnelProbability_polarized(energiesTable(i), polarizationGap);
                 end;
                 % pravdepodobnost prechodu cez barieru pre kladne energie
                 transportProbability(N-i+1) =  transportProbability(i);
@@ -205,9 +205,9 @@ classdef btk_model<handle
             dIdV1 = zeros([1 Npoints]);
             dIdV2 = [];
             dIdV_Polarization = zeros([1 Npoints]);
-            
+
             polarizationGap = 1e-3*DGZW(9);
-            precalculateBar(obj,DGZW(1:3));
+            precalculateBar(obj,DGZW(1:3), polarizationGap);
             
             index = 1;
             for i=1:n/2
@@ -251,8 +251,7 @@ classdef btk_model<handle
             end;
             
             P = DGZW(8);
-            
-            precalculateBarForPolarization(obj,DGZW(1:3));
+            precalculateBarForPolarization(obj, DGZW(1:3), polarizationGap);
             index = 1;
             for i=1:n/2
                 if (energiesTable(i)>=-energyComputationRange) && (energiesTable(i)<=0)
@@ -381,7 +380,6 @@ classdef btk_model<handle
             end;
         end;
 
-        
         % Generalization of the BTK Theory to the Case of Finite Quasiparticle Lifetimes
         % Yousef Rohanizadegan
         function [uSquared, vSquared] = getCoherenceFactorSquares(E)
@@ -392,34 +390,40 @@ classdef btk_model<handle
             vSquared = 1 - uSquared;
         end;
 
-        function transportProbability = btkTunnelProbability(E)
+        % Andreev reflections at metalÕsuperconductor point contacts: Measurement and analysis
+        % G. J. Strijkers, et al.
+        function transportProbability = btkTunnelProbability(E, polarizationGap)
             global zParam Z2 deltaParam;
-            [u0Squared, v0Squared] = btk_model.getCoherenceFactorSquares(E);
-           
-            gammaSquared = (u0Squared + (u0Squared - v0Squared)*Z2)^2;
-            A = (abs(u0Squared)*abs(v0Squared))/abs(gammaSquared);
-            B = (Z2*(Z2 + 1)*(abs(u0Squared) - abs(v0Squared))^2)/abs(gammaSquared);
-
+            [u1Squared, v1Squared] = btk_model.getCoherenceFactorSquares(E, polarizationGap);
+            [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam);
+            if abs(E) < polarizationGap
+                A = polarizationGap^2/(E^2 + ((polarizationGap^2 - E^2)*(1+2*Z2))^2);
+                B = 1-A;
+            elseif abs(E) < deltaParam
+                gamma1Squared = (u1Squared + (u1Squared - v1Squared)*Z2)^2;
+                A = (u1Squared*v1Squared)/gamma1Squared;
+                B = 1-A;
+            else  
+                gamma2Squared = u1Squared*v1Squared + (u2Squared - v2Squared)*(u2Squared + Z2 + Z2*(1+Z2)*(u2Squared - v2Squared));
+                A = (u1Squared*v1Squared)/gamma2Squared;
+                B = (Z2*(Z2 + 1)*(u2Squared - v2Squared)^2)/gamma2Squared;
+            end;
             transportProbability = 1 + A - B;
         end;
         
-        
-        function transportProbability = btkTunnelProbability_polarized(E)
-            global zParam Z2 polarizationGap deltaParam;
+        function transportProbability = btkTunnelProbability_polarized(E, polarizationGap)
+            global zParam Z2 deltaParam;
 
-            [b,c] = btk_model.getCoherenceFactorSquares(E);
-            
-            a1 = (1+c)/2;
-            b = -b/2; 
-            gam = (a1+Z2*c)^2 + (b*(2*Z2+1))^2;
+            [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam);
             if abs(E) < deltaParam
-            A = 0;
-            B = 1;
-        else 
-            A = 0;
-            B = (Z2*c-2*zParam*b)^2 + (zParam*(2*zParam*b+c))^2;
-        end;
-            transportProbability = 1 + (A-B)/gam;
+                A = 0;
+                B = 1;
+            else 
+                gamma3Squared = (u2Squared - v2Squared)*(u2Squared + Z2 + Z2*(1+Z2)*(u2Squared - v2Squared));
+                A = 0;
+                B = (Z2*(Z2 + 1)*(u2Squared - v2Squared)^2)/gamma3Squared;
+            end;
+            transportProbability = 1 + A - B;
         end;
         
         function transportProbability = tun_prob(E,d,F,U) % E [eV], U [V]
