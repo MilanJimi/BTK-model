@@ -74,7 +74,7 @@ function mainFigure_CreateFcn(hObject, eventdata, handles)
     global DataFile ChanData BTKmodel BTKparams btk_hwnd Polyfit;
     
     BTKmodel = 0;
-    BTKparams.DGZW = [5 0 0 0 0 0 0 0 0];
+    BTKparams.DGZW = [5 0 0 0 0 0 0 0 5];
     BTKparams.T = 10;
     BTKparams.R2 = 0;
     BTKparams.N = 100;

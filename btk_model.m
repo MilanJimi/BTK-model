@@ -390,7 +390,7 @@ classdef btk_model<handle
             vSquared = 1 - uSquared;
         end;
 
-        % Andreev reflections at metalÕsuperconductor point contacts: Measurement and analysis
+        % Andreev reflections at metal superconductor point contacts: Measurement and analysis
         % G. J. Strijkers, et al.
         function transportProbability = btkTunnelProbability(E, polarizationGap)
             global zParam Z2 deltaParam;
@@ -405,8 +405,8 @@ classdef btk_model<handle
                 B = 1-A;
             else  
                 gamma2Squared = u1Squared*v1Squared + (u2Squared - v2Squared)*(u2Squared + Z2 + Z2*(1+Z2)*(u2Squared - v2Squared));
-                A = abs(u1Squared*v1Squared/gamma2Squared);
-                B = abs((Z2*(Z2 + 1)*(u2Squared - v2Squared)^2)/gamma2Squared);
+                A = abs(u1Squared)*abs(v1Squared)/abs(gamma2Squared);
+                B = (Z2*(Z2 + 1)*(abs(u2Squared) - abs(v2Squared))^2)/abs(gamma2Squared);
             end;
             transportProbability = 1 + A - B;
         end;

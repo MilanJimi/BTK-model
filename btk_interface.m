@@ -187,7 +187,7 @@ function bPolarization_Callback(hObject, eventdata, handles)
 function bPolarizationGap_Callback(hObject, eventdata, handles)
     
     global ID_PD;
-    optimizeParameter(handles,ID_PD,'PolarizationGap','');
+    optimizeParameter(handles,ID_PD,'PolarizationGap','meV');
 
 function bZet1_Callback(hObject, eventdata, handles)
 
@@ -313,7 +313,7 @@ function sPolarization_Callback(hObject, eventdata, handles)
 function sPolarizationGap_Callback(hObject, eventdata, handles)
 
     global ID_PD;
-    setControl(handles,{ID_PD},{'PolarizationGap'},'');
+    setControl(handles,{ID_PD},{'PolarizationGap'},'meV');
 
 
 function sGama1_Callback(hObject, eventdata, handles)
@@ -390,7 +390,7 @@ function ePolarization_Callback(hObject, eventdata, handles)
 function ePolarizationGap_Callback(hObject, eventdata, handles)
 
     global ID_PD;
-    setControlByEdit(handles,{ID_PD},{'PolarizationGap'},'');
+    setControlByEdit(handles,{ID_PD},{'PolarizationGap'},'meV');
 function eZet1_Callback(hObject, eventdata, handles)
 
     global ID_Z1 ID_Z2;
