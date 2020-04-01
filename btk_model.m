@@ -401,12 +401,12 @@ classdef btk_model<handle
                 B = 1-A;
             elseif abs(E) < deltaParam
                 gamma1Squared = (u1Squared + (u1Squared - v1Squared)*Z2)^2;
-                A = abs(u1Squared*v1Squared/gamma1Squared);
+                A = u1Squared*v1Squared/gamma1Squared;
                 B = 1-A;
             else  
                 gamma2Squared = u1Squared*v1Squared + (u2Squared - v2Squared)*(u2Squared + Z2 + Z2*(1+Z2)*(u2Squared - v2Squared));
-                A = abs(u1Squared)*abs(v1Squared)/abs(gamma2Squared);
-                B = (Z2*(Z2 + 1)*(abs(u2Squared) - abs(v2Squared))^2)/abs(gamma2Squared);
+                A = u1Squared*v1Squared/gamma2Squared;
+                B = (Z2*(Z2 + 1)*(u2Squared - v2Squared)^2)/gamma2Squared;
             end;
             transportProbability = 1 + A - B;
         end;
