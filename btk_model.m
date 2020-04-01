@@ -397,7 +397,7 @@ classdef btk_model<handle
             [u1Squared, v1Squared] = btk_model.getCoherenceFactorSquares(E, polarizationGap);
             [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam);
             if abs(E) < polarizationGap
-                A = polarizationGap^2/(E^2 + ((polarizationGap^2 - E^2)*(1+2*Z2))^2);
+                A = polarizationGap^2/(E^2 + (polarizationGap^2 - E^2)*(1+2*Z2)^2);
                 B = 1-A;
             elseif abs(E) < deltaParam
                 gamma1Squared = (u1Squared + (u1Squared - v1Squared)*Z2)^2;
