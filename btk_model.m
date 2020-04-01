@@ -382,11 +382,11 @@ classdef btk_model<handle
 
         % Generalization of the BTK Theory to the Case of Finite Quasiparticle Lifetimes
         % Yousef Rohanizadegan
-        function [uSquared, vSquared] = getCoherenceFactorSquares(E)
-            global gParam D2;
+        function [uSquared, vSquared] = getCoherenceFactorSquares(E, Delta)
+            global gParam;
             dampedE = abs(E)-i*gParam;
-            
-            uSquared = (1 + sqrt(dampedE^2 - D2)/dampedE)/2;
+
+            uSquared = (1 + sqrt(dampedE^2 - Delta^2)/dampedE)/2;
             vSquared = 1 - uSquared;
         end;
 
@@ -401,12 +401,12 @@ classdef btk_model<handle
                 B = 1-A;
             elseif abs(E) < deltaParam
                 gamma1Squared = (u1Squared + (u1Squared - v1Squared)*Z2)^2;
-                A = (u1Squared*v1Squared)/gamma1Squared;
+                A = abs(u1Squared*v1Squared/gamma1Squared);
                 B = 1-A;
             else  
                 gamma2Squared = u1Squared*v1Squared + (u2Squared - v2Squared)*(u2Squared + Z2 + Z2*(1+Z2)*(u2Squared - v2Squared));
-                A = (u1Squared*v1Squared)/gamma2Squared;
-                B = (Z2*(Z2 + 1)*(u2Squared - v2Squared)^2)/gamma2Squared;
+                A = abs(u1Squared*v1Squared/gamma2Squared);
+                B = abs((Z2*(Z2 + 1)*(u2Squared - v2Squared)^2)/gamma2Squared);
             end;
             transportProbability = 1 + A - B;
         end;
@@ -421,7 +421,7 @@ classdef btk_model<handle
             else 
                 gamma3Squared = (u2Squared - v2Squared)*(u2Squared + Z2 + Z2*(1+Z2)*(u2Squared - v2Squared));
                 A = 0;
-                B = (Z2*(Z2 + 1)*(u2Squared - v2Squared)^2)/gamma3Squared;
+                B = abs(Z2*(Z2 + 1)*(u2Squared - v2Squared)^2/gamma3Squared);
             end;
             transportProbability = 1 + A - B;
         end;
