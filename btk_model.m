@@ -398,9 +398,8 @@ classdef btk_model<handle
             [u0Squared, v0Squared] = btk_model.getCoherenceFactorSquares(E);
            
             gammaSquared = (u0Squared + (u0Squared - v0Squared)*Z2)^2;
-            A = (abs(u0Squared)*abs(v0Squared))/abs(gammaSquared);
-            B = (Z2*(Z2 + 1)*(abs(u0Squared)^2 + abs(v0Squared)^2 - u0Squared*conj(v0Squared) - conj(u0Squared)*v0Squared))/abs(gammaSquared);
-
+            A = abs(u0Squared*v0Squared/gammaSquared);
+            B = abs(Z2*(Z2 + 1)*(u0Squared - v0Squared)^2/gammaSquared);
             transportProbability = 1 + A - B;
         end;
         
