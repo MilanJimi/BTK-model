@@ -1349,7 +1349,7 @@ function bExport_Callback(hObject, eventdata, handles)
             fprintf(fid, 'Zet2:    %.3f \n', BTKparams.DGZW(ID_Z2));
             fprintf(fid, 'Gamma2:  %.3f meV\n', BTKparams.DGZW(ID_G2));
             fprintf(fid, 'Polarization:  %.3f \n', BTKparams.DGZW(ID_P));
-            fprintf(fid, 'Polarization gap:  %.3f meV\n', BTKparams.DGZW(ID_PD));
+            fprintf(fid, 'Proximity gap:  %.3f meV\n', BTKparams.DGZW(ID_PD));
             fclose(fid);
             
             if get(handles.cbUseComma,'Value')
