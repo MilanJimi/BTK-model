@@ -393,20 +393,22 @@ classdef btk_model<handle
         % Andreev reflections at metal superconductor point contacts: Measurement and analysis
         % G. J. Strijkers, et al.
         function transportProbability = btkTunnelProbability(E, proximityGap)
-            global zParam Z2 deltaParam;
+            global zParam Z2 deltaParam gParam;
             [u1Squared, v1Squared] = btk_model.getCoherenceFactorSquares(E, proximityGap);
             [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam);
             if abs(E) < proximityGap
-                A = proximityGap^2/(E^2 + (proximityGap^2 - E^2)*(1+2*Z2)^2);
+                dampedE = abs(E)-i*gParam;
+                A = abs(proximityGap^2/(abs(dampedE)^2 + (proximityGap^2 - E^2)*(1+2*Z2)^2));
+                A2 = abs(proximityGap^2/(E^2 + (proximityGap^2 - E^2)*(1+2*Z2)^2));
                 B = 1-A;
             elseif abs(E) < deltaParam
                 gamma1Squared = (u1Squared + (u1Squared - v1Squared)*Z2)^2;
-                A = u1Squared*v1Squared/gamma1Squared;
+                A = abs(u1Squared*v1Squared/gamma1Squared);
                 B = 1-A;
             else  
                 gamma2Squared = u1Squared*v1Squared + (u2Squared - v2Squared)*(u2Squared + Z2 + Z2*(1+Z2)*(u2Squared - v2Squared));
-                A = u1Squared*v1Squared/gamma2Squared;
-                B = (Z2*(Z2 + 1)*(u2Squared - v2Squared)^2)/gamma2Squared;
+                A = abs(u1Squared*v1Squared/gamma2Squared);
+                B = abs((Z2*(Z2 + 1)*(u2Squared - v2Squared)^2)/gamma2Squared);
             end;
             transportProbability = 1 + A - B;
         end;
