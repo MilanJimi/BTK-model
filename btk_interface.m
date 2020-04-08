@@ -326,13 +326,13 @@ function sPolarization_Callback(hObject, eventdata, handles)
     setControl(handles,{ID_P},{'Polarization'},'');
     
 function sProximityGap_Callback(hObject, eventdata, handles)
-
+ 
     global ID_PD;
     if get(handles.sProximityGap, 'Value') > get(handles.sDelta1,'Value')
         set(handles.sProximityGap,'Value',get(handles.sDelta1,'Value'));
         set(handles.eProximityGap,'Value',get(handles.eDelta1,'Value'));
-        setControl(handles,{ID_PD},{'ProximityGap'},'meV');
     end;
+    setControl(handles,{ID_PD},{'ProximityGap'},'meV');
 
 
 function sGama1_Callback(hObject, eventdata, handles)
@@ -416,8 +416,8 @@ function eProximityGap_Callback(hObject, eventdata, handles)
     if get(handles.eProximityGap, 'Value') > get(handles.sDelta1,'Value')
         set(handles.eProximityGap,'Value',get(handles.eDelta1,'Value'));
         set(handles.sProximityGap,'Value',get(handles.sDelta1,'Value'));
-        setControlByEdit(handles,{ID_PD},{'ProximityGap'},'meV');
     end;
+    setControlByEdit(handles,{ID_PD},{'ProximityGap'},'meV');
 
 function eZet1_Callback(hObject, eventdata, handles)
 
