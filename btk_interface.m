@@ -58,15 +58,18 @@ function btk_interface_OpeningFcn(hObject, eventdata, handles, varargin)
         setValue(handles.eGama2,handles.sGama2,BTKparams.DGZW(ID_G2),'meV');
         setValue(handles.eWeight,handles.sWeight,BTKparams.DGZW(ID_W));
         setValue(handles.ePolarization,handles.sPolarization,BTKparams.DGZW(ID_P));
-        setValue(handles.ePolarizationGap,handles.sPolarizationGap,BTKparams.DGZW(ID_PD), 'meV');
+        setValue(handles.eProximityGap,handles.sProximityGap,BTKparams.DGZW(ID_PD), 'meV');
         setValue(handles.eTemp,0,BTKparams.T,'K');
+        enableControls(handles,'ProximityGap','inactive');
+        enableControls(handles,'Gama2','inactive');
+        enableControls(handles,'Zet2','inactive');
         
         if ChanData{3}.count==0
             set(handles.bDelta1,'Enable','off');
             set(handles.bDelta2,'Enable','off');
             set(handles.bWeight,'Enable','off');
             set(handles.bPolarization,'Enable','off');
-            set(handles.bPolarizationGap,'Enable','off');
+            set(handles.bProximityGap,'Enable','off');
             set(handles.bZet1,'Enable','off');
             set(handles.bZet2,'Enable','off');
             set(handles.bGama1,'Enable','off');
@@ -184,10 +187,10 @@ function bPolarization_Callback(hObject, eventdata, handles)
     global ID_P;
     optimizeParameter(handles,ID_P,'Polarization','');
 
-function bPolarizationGap_Callback(hObject, eventdata, handles)
+function bProximityGap_Callback(hObject, eventdata, handles)
     
     global ID_PD;
-    optimizeParameter(handles,ID_PD,'PolarizationGap','meV');
+    optimizeParameter(handles,ID_PD,'ProximityGap','meV');
 
 function bZet1_Callback(hObject, eventdata, handles)
 
@@ -247,18 +250,25 @@ function enableControls(handles,tag,enable)
 function cbZet12_Callback(hObject, eventdata, handles)
 
     if get(handles.cbZet12,'Value')
-        enableControls(handles,'Zet2','inactive');
-    else
         enableControls(handles,'Zet2','on');
+    else
+        enableControls(handles,'Zet2','inactive');
     end;
 
+function cbProximityGap_Callback(hObject, eventdata, handles)
+
+    if get(handles.cbProximityGap,'Value')
+        enableControls(handles,'ProximityGap','on');
+    else
+        enableControls(handles,'ProximityGap','inactive');
+    end;
     
 function cbGama12_Callback(hObject, eventdata, handles)
 
     if get(handles.cbGama12,'Value')
-        enableControls(handles,'Gama2','inactive');
-    else
         enableControls(handles,'Gama2','on');
+    else
+        enableControls(handles,'Gama2','inactive');
     end;
     
 
@@ -292,8 +302,13 @@ function setControlByEdit(handles,idx,tag,unit)
     
 function sDelta1_Callback(hObject, eventdata, handles)
 
-    global ID_D1;
-    setControl(handles,{ID_D1},{'Delta1'},'meV');
+    global ID_D1 ID_PD;
+    if get(handles.cbProximityGap,'Value')
+        setControl(handles,{ID_D1},{'Delta1'},'meV');
+    else
+        set(handles.sProximityGap,'Value',get(handles.sDelta1,'Value'));
+        setControl(handles,{ID_D1,ID_PD},{'Delta1','ProximityGap'},'meV');
+    end;
 
 function sDelta2_Callback(hObject, eventdata, handles)
 
@@ -310,20 +325,24 @@ function sPolarization_Callback(hObject, eventdata, handles)
     global ID_P;
     setControl(handles,{ID_P},{'Polarization'},'');
     
-function sPolarizationGap_Callback(hObject, eventdata, handles)
+function sProximityGap_Callback(hObject, eventdata, handles)
 
     global ID_PD;
-    setControl(handles,{ID_PD},{'PolarizationGap'},'meV');
+    if get(handles.sProximityGap, 'Value') > get(handles.sDelta1,'Value')
+        set(handles.sProximityGap,'Value',get(handles.sDelta1,'Value'));
+        set(handles.eProximityGap,'Value',get(handles.eDelta1,'Value'));
+        setControl(handles,{ID_PD},{'ProximityGap'},'meV');
+    end;
 
 
 function sGama1_Callback(hObject, eventdata, handles)
 
     global ID_G1 ID_G2;
     if get(handles.cbGama12,'Value')
+        setControl(handles,{ID_G1},{'Gama1'},'');
+    else
         set(handles.sGama2,'Value',get(handles.sGama1,'Value'));
         setControl(handles,{ID_G1,ID_G2},{'Gama1','Gama2'},'');
-    else
-        setControl(handles,{ID_G1},{'Gama1'},'');
     end;
 
 function sGama2_Callback(hObject, eventdata, handles)
@@ -335,10 +354,10 @@ function sZet1_Callback(hObject, eventdata, handles)
 
     global ID_Z1 ID_Z2;
     if get(handles.cbZet12,'Value')
+        setControl(handles,{ID_Z1},{'Zet1'},'');
+    else
         set(handles.sZet2,'Value',get(handles.sZet1,'Value'));
         setControl(handles,{ID_Z1,ID_Z2},{'Zet1','Zet2'},'');
-    else
-        setControl(handles,{ID_Z1},{'Zet1'},'');
     end;
     
 function sZet2_Callback(hObject, eventdata, handles)
@@ -362,15 +381,19 @@ function sWeight_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 function sPolarization_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor',[.9 .9 .9]);
-function sPolarizationGap_CreateFcn(hObject, eventdata, handles)
+function sProximityGap_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 
 
 function eDelta1_Callback(hObject, eventdata, handles)
 
-    global ID_D1;
-    setControlByEdit(handles,{ID_D1},{'Delta1'},'meV');
-
+    global ID_D1 ID_PD;
+    if get(handles.cbProximityGap,'Value')
+        set(handles.eProximityGap,'String',get(handles.eDelta1,'String'));
+        setControlByEdit(handles,{ID_D1, ID_PD},{'Delta1', 'ProximityGap'},'meV');
+    else
+        setControlByEdit(handles,{ID_D1},{'Delta1'},'meV');
+    end;
 function eDelta2_Callback(hObject, eventdata, handles)
 
     global ID_D2;
@@ -387,10 +410,15 @@ function ePolarization_Callback(hObject, eventdata, handles)
     global ID_P;
     setControlByEdit(handles,{ID_P},{'Polarization'},'');
     
-function ePolarizationGap_Callback(hObject, eventdata, handles)
+function eProximityGap_Callback(hObject, eventdata, handles)
 
     global ID_PD;
-    setControlByEdit(handles,{ID_PD},{'PolarizationGap'},'meV');
+    if get(handles.eProximityGap, 'Value') > get(handles.sDelta1,'Value')
+        set(handles.eProximityGap,'Value',get(handles.eDelta1,'Value'));
+        set(handles.sProximityGap,'Value',get(handles.sDelta1,'Value'));
+        setControlByEdit(handles,{ID_PD},{'ProximityGap'},'meV');
+    end;
+
 function eZet1_Callback(hObject, eventdata, handles)
 
     global ID_Z1 ID_Z2;
@@ -429,7 +457,7 @@ function eWeight_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor','white');
 function ePolarization_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor','white');
-function ePolarizationGap_CreateFcn(hObject, eventdata, handles)
+function eProximityGap_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor','white');
 function eZet1_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor','white');
