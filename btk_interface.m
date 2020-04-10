@@ -342,7 +342,7 @@ function sGama1_Callback(hObject, eventdata, handles)
         setControl(handles,{ID_G1},{'Gama1'},'');
     else
         set(handles.sGama2,'Value',get(handles.sGama1,'Value'));
-        setControl(handles,{ID_G1,ID_G2},{'Gama1','Gama2'},'');
+        setControl(handles,{ID_G1,ID_G2},{'Gama1','Gama2'},'meV');
     end;
 
 function sGama2_Callback(hObject, eventdata, handles)
