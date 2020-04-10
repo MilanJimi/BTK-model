@@ -397,9 +397,9 @@ classdef btk_model<handle
             [u1Squared, v1Squared] = btk_model.getCoherenceFactorSquares(E, proximityGap);
             [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam);
             if abs(E) < proximityGap
-                dampedE = abs(E)-i*gParam;
-                A = abs(proximityGap^2/(E^2 + (proximityGap^2 - E^2)*(1+2*Z2)^2));
-                B = 1-A;
+                gamma1Squared = (u1Squared + (u1Squared - v1Squared)*Z2)^2;
+                A = abs(u1Squared*v1Squared/gamma1Squared);
+                B = abs((Z2*(Z2 + 1)*(u1Squared - v1Squared)^2)/gamma1Squared);
             elseif abs(E) < deltaParam
                 gamma1Squared = (u1Squared + (u1Squared - v1Squared)*Z2)^2;
                 A = abs(u1Squared*v1Squared/gamma1Squared);
