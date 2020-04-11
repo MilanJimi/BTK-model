@@ -303,11 +303,15 @@ function setControlByEdit(handles,idx,tag,unit)
 function sDelta1_Callback(hObject, eventdata, handles)
 
     global ID_D1 ID_PD;
+    setControl(handles,{ID_D1},{'Delta1'},'meV');
     if get(handles.cbProximityGap,'Value')
-        setControl(handles,{ID_D1},{'Delta1'},'meV');
     else
         set(handles.sProximityGap,'Value',get(handles.sDelta1,'Value'));
         setControl(handles,{ID_D1,ID_PD},{'Delta1','ProximityGap'},'meV');
+    end;
+    if get(handles.sDelta1, 'Value') < get(handles.sProximityGap, 'Value')
+        set(handles.sProximityGap,'Value',get(handles.sDelta1,'Value'));
+        setControl(handles,{ID_PD},{'ProximityGap'},'meV');
     end;
 
 function sDelta2_Callback(hObject, eventdata, handles)
@@ -388,11 +392,17 @@ function sProximityGap_CreateFcn(hObject, eventdata, handles)
 function eDelta1_Callback(hObject, eventdata, handles)
 
     global ID_D1 ID_PD;
+    setControlByEdit(handles,{ID_D1},{'Delta1'},'meV');
+
     if get(handles.cbProximityGap,'Value')
-        set(handles.eProximityGap,'String',get(handles.eDelta1,'String'));
-        setControlByEdit(handles,{ID_D1, ID_PD},{'Delta1', 'ProximityGap'},'meV');
     else
-        setControlByEdit(handles,{ID_D1},{'Delta1'},'meV');
+        set(handles.eProximityGap,'String',get(handles.eDelta1,'String'));
+        setControlByEdit(handles,{ID_PD},{'ProximityGap'},'meV');
+    end;
+    if get(handles.sDelta1, 'Value') < get(handles.sProximityGap, 'Value')
+        disp(ID_D1)
+        set(handles.eProximityGap,'String',get(handles.eDelta1,'String'));
+        setControlByEdit(handles,{ID_PD},{'ProximityGap'},'meV');
     end;
 function eDelta2_Callback(hObject, eventdata, handles)
 
