@@ -27,12 +27,12 @@ classdef btk_model<handle
             vF = 1e5;
             e  = 1.6e-19;
             
-            global energyComputationRange Eint_rng Emax_rng dE dE_2 N Nhalf T;
+            global energyComputationRange Eint_rng EmaxRange dE dE_2 N Nhalf T;
             global energiesTable energiesFineTable derivatedFermiFunction normalizedDerivatedFermiFunction transportProbability;
 
             energyComputationRange = energyRange;
             Eint_rng = (N_FACT-1)*energyRange;
-            Emax_rng = N_FACT*energyRange;
+            EmaxRange = N_FACT*energyRange;
             N = 0;
             Nhalf = 0;
             dE = 0;
@@ -46,7 +46,7 @@ classdef btk_model<handle
         end
         
         function obj = setTemp(obj,temperature)
-            global Npoints Emax_rng dE dE_2 N Nhalf k ikT kT T Ei1 Ei2;
+            global Npoints EmaxRange dE dE_2 N Nhalf k ikT kT T Ei1 Ei2;
             global N_FACT energiesTable normalizedDerivatedFermiFunction;
             
             T = temperature;
@@ -55,8 +55,8 @@ classdef btk_model<handle
             
             Nhalf = round(N_FACT*Npoints/2);
             N = 2*Nhalf;
-            dE = 2*Emax_rng/N;
-            dE_2 = Emax_rng/N;
+            dE = 2*EmaxRange/N;
+            dE_2 = EmaxRange/N;
             energiesTable = zeros([1 N]);
             derivatedFermiFunction = zeros([1 N]);
             normalizedDerivatedFermiFunction = zeros([1 N]);
@@ -65,25 +65,25 @@ classdef btk_model<handle
             D = 1-4*akT;
             Emin = kT*log((1-2*akT-sqrt(D))/(2*akT));
             Emax = kT*log((1-2*akT+sqrt(D))/(2*akT));
-            
             Ei1 = 0;
             Ei2 = 0;
             dE_10 = dE/10;
             for i=1:N
                 % dE/2 je kvoli tomu, aby tam nebola nulova hodnota a aby som nemusel osetrovat delenie nulou
-                E = -Emax_rng + i*dE - dE_2;
+                E = -EmaxRange + i*dE - dE_2;
                 energiesTable(i) = E;
                 if (Ei1==0) && (E+dE>=Emin) 
                     Ei1 = i;
                 end;
                 
                 if (Ei1>0) && (Ei2==0)
-                    E1 = E - dE_2;
-                    E2 = E + dE_2;
+                    Ebot = E - dE_2;
+                    Etop = E + dE_2;
                     ff = 0;
                     nff = 0;
-                    for Ej=E1:dE_10:E2
-                        [tmp,dff] = obj.FermiFun(Ej);
+                    for Ej=Ebot:dE_10:Etop
+                        % Fermi function nie je zaujímavá, iba jej derivácia
+                        [fermiFunction,dff] = obj.FermiFun(Ej);
                         ff = ff + dff;
                         nff = nff+1;
                     end;
@@ -92,7 +92,6 @@ classdef btk_model<handle
                 else
                     derivatedFermiFunction(i) = 0;
                 end;
-                
                 if (Ei2==0) && (E>=Emax) 
                     Ei2 = i;
                 end;
