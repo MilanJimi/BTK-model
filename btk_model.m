@@ -46,7 +46,7 @@ classdef btk_model<handle
         end
         
         function obj = setTemp(obj,temperature)
-            global Npoints Emax_rng invdE dE dE_2 N Nhalf k ikT kT T Ei1 Ei2;
+            global Npoints Emax_rng dE dE_2 N Nhalf k ikT kT T Ei1 Ei2;
             global N_FACT energiesTable normalizedDerivatedFermiFunction;
             
             T = temperature;
@@ -57,7 +57,6 @@ classdef btk_model<handle
             N = 2*Nhalf;
             dE = 2*Emax_rng/N;
             dE_2 = Emax_rng/N;
-            invdE = 1/dE;
             energiesTable = zeros([1 N]);
             derivatedFermiFunction = zeros([1 N]);
             normalizedDerivatedFermiFunction = zeros([1 N]);
@@ -114,11 +113,10 @@ classdef btk_model<handle
             Z2 = zParam*zParam;
             G2 = gParam*gParam;
 
-            global N Nhalf invdE energiesTable transportProbability;
+            global N Nhalf dE energiesTable transportProbability;
             
             [m,n] = size(energiesTable);
             transportProbability = zeros([m,n]);
-            dE = 1/invdE;
             dE_20 = dE/20;
             for i=1:Nhalf
                 E = energiesTable(i);
@@ -154,11 +152,10 @@ classdef btk_model<handle
             Z2 = zParam*zParam;
             G2 = gParam*gParam;
 
-            global N Nhalf invdE energiesTable transportProbability;
+            global N Nhalf dE energiesTable transportProbability;
             
             [m,n] = size(energiesTable);
             transportProbability = zeros([m,n]);
-            dE = 1/invdE;
             dE_10 = dE/20;
             for i=1:Nhalf
                 E = energiesTable(i);
@@ -182,25 +179,22 @@ classdef btk_model<handle
         end;
         
         function dIdV = localDeriv(obj,V)
-            global invdE Z2 Ei1 Ei2 normalizedDerivatedFermiFunction transportProbability;
-            
+            global dE Z2 Ei1 Ei2 normalizedDerivatedFermiFunction transportProbability;
             intg = 0;
-            
-            Vi = floor(V*invdE);
+            Vi = floor(V/dE);
             for i = Ei1:Ei2
                 i_bias = i+Vi;%max(1,min(i+Vi,N));
                 intg = intg + normalizedDerivatedFermiFunction(i)*transportProbability(i_bias);
             end;
-            
             dIdV = (1 + Z2)*intg;
         end;
         
         function [V,dIdV] = calcDiffChar(obj,hWait,DGZW)
             
-            global energyComputationRange invdE energiesTable;
+            global energyComputationRange dE energiesTable;
             
             [m,n] = size(energiesTable);
-            Npoints = round(2*energyComputationRange*invdE);
+            Npoints = round(2*energyComputationRange/dE);
             V = zeros([1 Npoints]);
             dIdV1 = zeros([1 Npoints]);
             dIdV2 = [];
