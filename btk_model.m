@@ -402,20 +402,25 @@ classdef btk_model<handle
         % G. J. Strijkers, et al.
         function transportProbability = btkTunnelProbability(E)
             global zParam Z2 deltaParam gParam proximityGap proximityzParam proximitygParam;
+
             [u1Squared, v1Squared] = btk_model.getCoherenceFactorSquares(E, proximityGap, proximitygParam);
             [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam, gParam);
+
             if abs(E) < proximityGap
                 gamma1Squared = (u1Squared + (u1Squared - v1Squared)*proximityzParam^2)^2;
                 A = abs(u1Squared*v1Squared/gamma1Squared);
-                B = abs((Z2*(Z2 + 1)*(u1Squared - v1Squared)^2)/gamma1Squared);
+                B = abs((proximityzParam^2*(proximityzParam^2 + 1)*(u1Squared - v1Squared)^2)/gamma1Squared);
+
             elseif abs(E) < deltaParam
                 gamma1Squared = (u1Squared + (u1Squared - v1Squared)*proximityzParam^2)^2;
                 A = abs(u1Squared*v1Squared/gamma1Squared);
                 B = 1-A;
+
             else  
                 gamma2Squared = u1Squared*v1Squared + (u2Squared - v2Squared)*(u2Squared + Z2 + Z2*(1+Z2)*(u2Squared - v2Squared));
                 A = abs(u1Squared*v1Squared/gamma2Squared);
                 B = abs((Z2*(Z2 + 1)*(u2Squared - v2Squared)^2)/gamma2Squared);
+
             end;
             transportProbability = 1 + A - B;
         end;
