@@ -29,7 +29,7 @@ function btk_interface_OpeningFcn(hObject, eventdata, handles, varargin)
     % UIWAIT makes btk_interface wait for user response (see UIRESUME)
     % uiwait(handles.figure1);
     
-    global ID_D1 ID_D2 ID_W ID_P ID_PD ID_Z1 ID_Z2 ID_G1 ID_G2;
+    global ID_D1 ID_D2 ID_W ID_P ID_Z1 ID_Z2 ID_G1 ID_G2 ID_PD ID_PG ID_PZ ;
     global lastPos BTKmodel BTKparams parentHnds ChanData;
     
     parentHnds = varargin{1};
@@ -44,7 +44,7 @@ function btk_interface_OpeningFcn(hObject, eventdata, handles, varargin)
         if (BTKmodel~=0)
             delete(BTKmodel);
         end;
-        BTKmodel = btk_model(BTKparams.Erng*1e-3,BTKparams.N);
+        BTKmodel = btk_model(BTKparams.Erng*5e-4,BTKparams.N);
         setTemp(handles,BTKparams.T);
         
         BTKparams.R2 = -Inf;
@@ -59,8 +59,12 @@ function btk_interface_OpeningFcn(hObject, eventdata, handles, varargin)
         setValue(handles.eWeight,handles.sWeight,BTKparams.DGZW(ID_W));
         setValue(handles.ePolarization,handles.sPolarization,BTKparams.DGZW(ID_P));
         setValue(handles.eProximityGap,handles.sProximityGap,BTKparams.DGZW(ID_PD), 'meV');
+        setValue(handles.eProximityZ,handles.sProximityZ,BTKparams.DGZW(ID_PZ));
+        setValue(handles.eProximityGamma,handles.sProximityGamma,BTKparams.DGZW(ID_PG), 'meV');
         setValue(handles.eTemp,0,BTKparams.T,'K');
         enableControls(handles,'ProximityGap','inactive');
+        enableControls(handles,'ProximityZ','inactive');
+        enableControls(handles,'ProximityGamma','inactive');
         enableControls(handles,'Gama2','inactive');
         enableControls(handles,'Zet2','inactive');
         
@@ -74,6 +78,8 @@ function btk_interface_OpeningFcn(hObject, eventdata, handles, varargin)
             set(handles.bZet2,'Enable','off');
             set(handles.bGama1,'Enable','off');
             set(handles.bGama2,'Enable','off');
+            set(handles.bProximityZ,'Enable','off');
+            set(handles.bProximityGamma,'Enable','off');
             set(handles.tRsquared,'Visible','off');
             set(handles.lRsquared,'Visible','off');
         end;
@@ -192,6 +198,16 @@ function bProximityGap_Callback(hObject, eventdata, handles)
     global ID_PD;
     optimizeParameter(handles,ID_PD,'ProximityGap','meV');
 
+function bProximityZ_Callback(hObject, eventdata, handles)
+
+    global ID_PZ;
+    optimizeParameter(handles,ID_PZ,'ProximityZ','');
+
+function bProximityGamma_Callback(hObject, eventdata, handles)
+      
+    global ID_PG;
+    optimizeParameter(handles,ID_PG,'ProximityGamma','meV');
+
 function bZet1_Callback(hObject, eventdata, handles)
 
     global ID_Z1;
@@ -211,6 +227,16 @@ function bGama2_Callback(hObject, eventdata, handles)
 
     global ID_G2;
     optimizeParameter(handles,ID_G2,'Gama2','meV');
+
+function bProximityZ_Callback(hObject, eventdata, handles)
+
+    global ID_PZ;
+    optimizeParameter(handles,ID_PZ,'ProximityZ','');
+
+function bProximityGamma_Callback(hObject, eventdata, handles)
+
+    global ID_PG;
+    optimizeParameter(handles,ID_PG,'ProximityGamma','meV');
 
 function showDiffChar(handles,params)
 
@@ -259,8 +285,12 @@ function cbProximityGap_Callback(hObject, eventdata, handles)
 
     if get(handles.cbProximityGap,'Value')
         enableControls(handles,'ProximityGap','on');
+        enableControls(handles,'ProximityZ','on');
+        enableControls(handles,'ProximityGamma','on');
     else
         enableControls(handles,'ProximityGap','inactive');
+        enableControls(handles,'ProximityZ','inactive');
+        enableControls(handles,'ProximityGamma','inactive');
     end;
     
 function cbGama12_Callback(hObject, eventdata, handles)
@@ -281,6 +311,10 @@ function setControl(handles,idx,tag,unit)
     if length(idx)>1
         eval(sprintf('BTKparams.DGZW(%d) = get(handles.s%s,''Value'');',idx{2},tag{2}));
         eval(sprintf('setValue(handles.e%s,handles.s%s,BTKparams.DGZW(%d),''%s'');',tag{2},tag{2},idx{2},unit));
+    end;
+    if length(idx)>2
+        eval(sprintf('BTKparams.DGZW(%d) = get(handles.s%s,''Value'');',idx{3},tag{3}));
+        eval(sprintf('setValue(handles.e%s,handles.s%s,BTKparams.DGZW(%d),''%s'');',tag{3},tag{3},idx{3},unit));
     end;
 
     eval(sprintf('set(handles.s%s,''Enable'',''inactive'');',tag{1}));
@@ -341,12 +375,26 @@ function sProximityGap_Callback(hObject, eventdata, handles)
 
 function sGama1_Callback(hObject, eventdata, handles)
 
-    global ID_G1 ID_G2;
-    if get(handles.cbGama12,'Value')
-        setControl(handles,{ID_G1},{'Gama1'},'');
-    else
+    global ID_G1 ID_G2 ID_PG;
+    % Z2 and Proximity Z variable
+    if get(handles.cbGama12,'Value') && get(handles.cbProximityGap,'Value')
+        setControl(handles,{ID_G1},{'Gama1'},'meV');
+    end;
+    % Z2 not variable, Proximity Z variable
+    if ~get(handles.cbGama12,'Value') && get(handles.cbProximityGap,'Value')
         set(handles.sGama2,'Value',get(handles.sGama1,'Value'));
-        setControl(handles,{ID_G1,ID_G2},{'Gama1','Gama2'},'meV');
+        setControl(handles,{ID_G1, ID_G2},{'Gama1','Gama2'},'meV');
+    end;
+    % Z2 variable, Proximity Z not variable
+    if get(handles.cbGama12,'Value') && ~get(handles.cbProximityGap,'Value')
+        set(handles.sProximityGamma,'Value',get(handles.sGama1,'Value'));
+        setControl(handles,{ID_G1,ID_PG},{'Gama1','ProximityGamma'},'meV');
+    end;
+    % Neither Z2 nor Proximity Z variable
+    if ~get(handles.cbGama12,'Value') && ~get(handles.cbProximityGap,'Value')
+        set(handles.sGama2,'Value',get(handles.sGama1,'Value'));
+        set(handles.sProximityGamma,'Value',get(handles.sGama1,'Value'));
+        setControl(handles,{ID_G1,ID_G2,ID_PG},{'Gama1','Gama2','ProximityGamma'},'meV');
     end;
 
 function sGama2_Callback(hObject, eventdata, handles)
@@ -356,18 +404,42 @@ function sGama2_Callback(hObject, eventdata, handles)
     
 function sZet1_Callback(hObject, eventdata, handles)
 
-    global ID_Z1 ID_Z2;
-    if get(handles.cbZet12,'Value')
+    global ID_Z1 ID_Z2 ID_PZ;
+    % Z2 and Proximity Z variable
+    if get(handles.cbZet12,'Value') && get(handles.cbProximityGap,'Value')
         setControl(handles,{ID_Z1},{'Zet1'},'');
-    else
+    end;
+    % Z2 not variable, Proximity Z variable
+    if ~get(handles.cbZet12,'Value') && get(handles.cbProximityGap,'Value')
         set(handles.sZet2,'Value',get(handles.sZet1,'Value'));
-        setControl(handles,{ID_Z1,ID_Z2},{'Zet1','Zet2'},'');
+        setControl(handles,{ID_Z1, ID_Z2},{'Zet1','Zet2'},'');
+    end;
+    % Z2 variable, Proximity Z not variable
+    if get(handles.cbZet12,'Value') && ~get(handles.cbProximityGap,'Value')
+        set(handles.sProximityZ,'Value',get(handles.sZet1,'Value'));
+        setControl(handles,{ID_Z1,ID_PZ},{'Zet1','ProximityZ'},'');
+    end;
+    % Neither Z2 nor Proximity Z variable
+    if ~get(handles.cbZet12,'Value') && ~get(handles.cbProximityGap,'Value')
+        set(handles.sZet2,'Value',get(handles.sZet1,'Value'));
+        set(handles.sProximityZ,'Value',get(handles.sZet1,'Value'));
+        setControl(handles,{ID_Z1,ID_Z2,ID_PZ},{'Zet1','Zet2','ProximityZ'},'');
     end;
     
 function sZet2_Callback(hObject, eventdata, handles)
 
     global ID_Z2;
     setControl(handles,{ID_Z2},{'Zet2'},'');
+
+function sProximityZ_Callback(hObject, eventdata, handles)
+
+    global ID_PZ;
+    setControl(handles,{ID_PZ},{'ProximityZ'},'');
+
+function sProximityGamma_Callback(hObject, eventdata, handles)
+
+    global ID_PG;
+    setControl(handles,{ID_PG},{'ProximityGamma'},'meV');
 
 function sDelta1_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor',[.9 .9 .9]);
@@ -386,6 +458,10 @@ function sWeight_CreateFcn(hObject, eventdata, handles)
 function sPolarization_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 function sProximityGap_CreateFcn(hObject, eventdata, handles)
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+function sProximityZ_CreateFcn(hObject, eventdata, handles)
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+function sProximityGamma_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 
 
@@ -431,14 +507,27 @@ function eProximityGap_Callback(hObject, eventdata, handles)
 
 function eZet1_Callback(hObject, eventdata, handles)
 
-    global ID_Z1 ID_Z2;
-    if get(handles.cbZet12,'Value')
-        set(handles.eZet2,'String',get(handles.eZet1,'String'));
-        setControlByEdit(handles,{ID_Z1,ID_Z2},{'Zet1','Zet2'},'');
-    else
+    global ID_Z1 ID_Z2 ID_PZ;
+    % Z2 and Proximity Z variable
+    if get(handles.cbZet12,'Value') && get(handles.cbProximityGap,'Value')
         setControlByEdit(handles,{ID_Z1},{'Zet1'},'');
     end;
-
+    % Z2 not variable, Proximity Z variable
+    if ~get(handles.cbZet12,'Value') && get(handles.cbProximityGap,'Value')
+        set(handles.eZet2,'Value',get(handles.eZet1,'Value'));
+        setControlByEdit(handles,{ID_Z1, ID_Z2},{'Zet1','Zet2'},'');
+    end;
+    % Z2 variable, Proximity Z not variable
+    if get(handles.cbZet12,'Value') && ~get(handles.cbProximityGap,'Value')
+        set(handles.eProximityZ,'Value',get(handles.eZet1,'Value'));
+        setControlByEdit(handles,{ID_Z1,ID_PZ},{'Zet1','ProximityZ'},'');
+    end;
+    % Neither Z2 nor Proximity Z variable
+    if ~get(handles.cbZet12,'Value') && ~get(handles.cbProximityGap,'Value')
+        set(handles.eZet2,'Value',get(handles.eZet1,'Value'));
+        set(handles.eProximityZ,'Value',get(handles.eZet1,'Value'));
+        setControlByEdit(handles,{ID_Z1,ID_Z2,ID_PZ},{'Zet1','Zet2','ProximityZ'},'');
+    end;
 function eZet2_Callback(hObject, eventdata, handles)
 
     global ID_Z2;
@@ -453,12 +542,43 @@ function eGama1_Callback(hObject, eventdata, handles)
     else
         setControlByEdit(handles,{ID_G1},{'Gama1'},'meV');
     end;
+
+    global ID_G1 ID_G2 ID_PG;
+    % Gamma2 and ProximityGamma variable
+    if get(handles.cbGama12,'Value') && get(handles.cbProximityGap,'Value')
+        setControlByEdit(handles,{ID_G1},{'Gama1'},'meV');
+    end;
+    % Gamma2 not variable, ProximityGamma variable
+    if ~get(handles.cbGama12,'Value') && get(handles.cbProximityGap,'Value')
+        set(handles.eGama2,'Value',get(handles.eGama1,'Value'));
+        setControlByEdit(handles,{ID_G1, ID_G2},{'Gama1','Gama2'},'meV');
+    end;
+    % Gamma2 variable, ProximityGamma not variable
+    if get(handles.cbGama12,'Value') && ~get(handles.cbProximityGap,'Value')
+        set(handles.eProximityGamma,'Value',get(handles.eGama1,'Value'));
+        setControlByEdit(handles,{ID_G1,ID_PG},{'Gama1','ProximityGamma'},'meV');
+    end;
+    % Neither Gamma2 nor ProximityGamma variable
+    if ~get(handles.cbGama12,'Value') && ~get(handles.cbProximityGap,'Value')
+        set(handles.eGama2,'Value',get(handles.eGama1,'Value'));
+        set(handles.eProximityGamma,'Value',get(handles.eGama1,'Value'));
+        setControlByEdit(handles,{ID_G1,ID_G2,ID_PG},{'Gama1','Gama2','ProximityGamma'},'meV');
+    end;
     
 function eGama2_Callback(hObject, eventdata, handles)
 
     global ID_G2;
     setControlByEdit(handles,{ID_G2},{'Gama2'},'meV');
     
+function eProximityGamma_Callback(hObject, eventdata, handles)
+
+    global ID_PG;
+    setControlByEdit(handles,{ID_PG},{'ProximityGamma'},'meV');
+function eProximityZ_Callback(hObject, eventdata, handles)
+
+    global ID_PZ;
+    setControlByEdit(handles,{ID_PZ},{'ProximityZ'},'');
+
 function eDelta1_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor','white');
 function eDelta2_CreateFcn(hObject, eventdata, handles)
@@ -476,6 +596,10 @@ function eZet2_CreateFcn(hObject, eventdata, handles)
 function eGama1_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor','white');
 function eGama2_CreateFcn(hObject, eventdata, handles)
+    set(hObject,'BackgroundColor','white');
+function eProximityZ_CreateFcn(hObject, eventdata, handles)
+    set(hObject,'BackgroundColor','white');
+function eProximityGamma_CreateFcn(hObject, eventdata, handles)
     set(hObject,'BackgroundColor','white');
 
 
@@ -539,5 +663,3 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 function bOK_Callback(hObject, eventdata, handles)
 
     figure1_CloseRequestFcn(handles.figure1, eventdata, handles)
-    
-    
