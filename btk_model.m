@@ -103,13 +103,18 @@ classdef btk_model<handle
 %             Ei2-Ei1
         end;
         
-        function obj = precalculateBar(obj,DGZ, proximityGap)
+        function obj = precalculateBar(obj,DGZ, proximityDGZ)
             
-            global zParam deltaParam gParam Z2 D2 G2;
+            global zParam deltaParam gParam Z2 D2 G2 proximityGap proximitygParam proximityzParam;
             
             deltaParam = 1e-3*DGZ(1);
             zParam = DGZ(2);
             gParam = 1e-3*DGZ(3);
+
+            proximityGap = 1e-3*proximityDGZ(1);
+            proximityzParam = proximityDGZ(2);
+            proximitygParam = 1e-3*proximityDGZ(3);
+
             D2 = deltaParam*deltaParam;
             Z2 = zParam*zParam;
             G2 = gParam*gParam;
@@ -130,26 +135,31 @@ classdef btk_model<handle
                     fineProbabilitySamples = 0;
                     % 20x jemnejsi integral
                     for Ej=Ebot:dE_20:Etop
-                        tProbability = tProbability + obj.btkTunnelProbability(Ej, proximityGap);
+                        tProbability = tProbability + obj.btkTunnelProbability(Ej);
                         fineProbabilitySamples = fineProbabilitySamples+1;
                     end;
                     transportProbability(i) = tProbability/fineProbabilitySamples;
                 else
                     % pravdepodobnost prechodu cez barieru pre kladne energie (|E| > Delta)
-                    transportProbability(i) = obj.btkTunnelProbability(energiesTable(i), proximityGap);
+                    transportProbability(i) = obj.btkTunnelProbability(energiesTable(i));
                 end;
                 % Pravdepodobnost je symetricka
                 transportProbability(N-i+1) = transportProbability(i);
             end;
         end;
         
-        function obj = precalculateBarForPolarization(obj,DGZ, proximityGap)
+        function obj = precalculateBarForPolarization(obj,DGZ, proximityDGZ)
             
-            global zParam deltaParam gParam Z2 D2 G2;
+            global zParam deltaParam gParam Z2 D2 G2 proximityGap proximitygParam ProximityzParam;
             
             deltaParam = 1e-3*DGZ(1);
             zParam = DGZ(2);
             gParam = 1e-3*DGZ(3);
+            
+            proximityGap = 1e-3*proximityDGZ(1);
+            proximityzParam = proximityDGZ(2);
+            proximitygParam = 1e-3*proximityDGZ(3);
+
             D2 = deltaParam*deltaParam;
             Z2 = zParam*zParam;
             G2 = gParam*gParam;
@@ -169,12 +179,12 @@ classdef btk_model<handle
                     tp = 0;
                     ntp = 0;
                     for Ej=E1:dE_10:E2
-                       tp = tp + obj.btkTunnelProbability_polarized(Ej, proximityGap);
+                       tp = tp + obj.btkTunnelProbability_polarized(Ej);
                         ntp = ntp+1;
                     end;
                     transportProbability(i) = tp/ntp;
                 else
-                    transportProbability(i) = obj.btkTunnelProbability_polarized(energiesTable(i), proximityGap);
+                    transportProbability(i) = obj.btkTunnelProbability_polarized(energiesTable(i));
                 end;
                 % pravdepodobnost prechodu cez barieru pre kladne energie
                 transportProbability(N-i+1) =  transportProbability(i);
@@ -206,8 +216,7 @@ classdef btk_model<handle
             dIdV2 = [];
             dIdV_Polarization = zeros([1 Npoints]);
 
-            proximityGap = 1e-3*DGZW(9);
-            precalculateBar(obj,DGZW(1:3), proximityGap);
+            precalculateBar(obj,DGZW(1:3), DGZW(9:11));
             
             index = 1;
             for i=1:n/2
@@ -251,7 +260,7 @@ classdef btk_model<handle
             end;
             
             P = DGZW(8);
-            precalculateBarForPolarization(obj, DGZW(1:3), proximityGap);
+            precalculateBarForPolarization(obj, DGZW(1:3), DGZW(9:11));
             index = 1;
             for i=1:n/2
                 if (energiesTable(i)>=-energyComputationRange) && (energiesTable(i)<=0)
@@ -382,9 +391,8 @@ classdef btk_model<handle
 
         % Generalization of the BTK Theory to the Case of Finite Quasiparticle Lifetimes
         % Yousef Rohanizadegan
-        function [uSquared, vSquared] = getCoherenceFactorSquares(E, Delta)
-            global gParam;
-            dampedE = abs(E)-i*gParam;
+        function [uSquared, vSquared] = getCoherenceFactorSquares(E, Delta, Gamma)
+            dampedE = abs(E)-i*Gamma;
 
             uSquared = (1 + sqrt(dampedE^2 - Delta^2)/dampedE)/2;
             vSquared = 1 - uSquared;
@@ -392,16 +400,16 @@ classdef btk_model<handle
 
         % Andreev reflections at metal superconductor point contacts: Measurement and analysis
         % G. J. Strijkers, et al.
-        function transportProbability = btkTunnelProbability(E, proximityGap)
-            global zParam Z2 deltaParam gParam;
-            [u1Squared, v1Squared] = btk_model.getCoherenceFactorSquares(E, proximityGap);
-            [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam);
+        function transportProbability = btkTunnelProbability(E)
+            global zParam Z2 deltaParam gParam proximityGap proximityzParam proximitygParam;
+            [u1Squared, v1Squared] = btk_model.getCoherenceFactorSquares(E, proximityGap, proximitygParam);
+            [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam, gParam);
             if abs(E) < proximityGap
-                gamma1Squared = (u1Squared + (u1Squared - v1Squared)*Z2)^2;
+                gamma1Squared = (u1Squared + (u1Squared - v1Squared)*proximityzParam^2)^2;
                 A = abs(u1Squared*v1Squared/gamma1Squared);
                 B = abs((Z2*(Z2 + 1)*(u1Squared - v1Squared)^2)/gamma1Squared);
             elseif abs(E) < deltaParam
-                gamma1Squared = (u1Squared + (u1Squared - v1Squared)*Z2)^2;
+                gamma1Squared = (u1Squared + (u1Squared - v1Squared)*proximityzParam^2)^2;
                 A = abs(u1Squared*v1Squared/gamma1Squared);
                 B = 1-A;
             else  
@@ -412,10 +420,10 @@ classdef btk_model<handle
             transportProbability = 1 + A - B;
         end;
         
-        function transportProbability = btkTunnelProbability_polarized(E, proximityGap)
-            global zParam Z2 deltaParam;
+        function transportProbability = btkTunnelProbability_polarized(E)
+            global zParam Z2 deltaParam gParam;
 
-            [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam);
+            [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam, gParam);
             if abs(E) < deltaParam
                 A = 0;
                 B = 1;

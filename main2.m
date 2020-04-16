@@ -38,7 +38,7 @@ function main2_OpeningFcn(hObject, eventdata, handles, varargin)
     ID_P = 8;
     ID_PD = 9;
     ID_PZ = 10;
-    ID_PG = 11
+    ID_PG = 11;
     
     global ARR_COLOR BG_COLOR;
     ARR_COLOR = [0.5 0.5 0.5];
