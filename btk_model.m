@@ -192,7 +192,7 @@ classdef btk_model<handle
         end;
         
         function dIdV = localDeriv(obj,V)
-            global invdE Z2 Ei1 Ei2 normalizedDerivatedFermiFunction transportProbability;
+            global invdE Z2 Ei1 Ei2 normalizedDerivatedFermiFunction transportProbability proximityGap proximityzParam;
             
             intg = 0;
             
@@ -202,7 +202,11 @@ classdef btk_model<handle
                 intg = intg + normalizedDerivatedFermiFunction(i)*transportProbability(i_bias);
             end;
             
+            if V < proximityGap
+            dIdV = (1 + proximityzParam^2)*intg;
+            else
             dIdV = (1 + Z2)*intg;
+            end;
         end;
         
         function [V,dIdV] = calcDiffChar(obj,hWait,DGZW)
@@ -405,12 +409,12 @@ classdef btk_model<handle
 
             [u1Squared, v1Squared] = btk_model.getCoherenceFactorSquares(E, proximityGap, proximitygParam);
             [u2Squared, v2Squared] = btk_model.getCoherenceFactorSquares(E, deltaParam, gParam);
-
+            
             if abs(E) < proximityGap
                 gamma1Squared = (u1Squared + (u1Squared - v1Squared)*proximityzParam^2)^2;
                 A = abs(u1Squared*v1Squared/gamma1Squared);
                 B = abs((proximityzParam^2*(proximityzParam^2 + 1)*(u1Squared - v1Squared)^2)/gamma1Squared);
-
+                
             elseif abs(E) < deltaParam
                 gamma1Squared = (u1Squared + (u1Squared - v1Squared)*proximityzParam^2)^2;
                 A = abs(u1Squared*v1Squared/gamma1Squared);
