@@ -192,7 +192,7 @@ classdef btk_model<handle
         end;
         
         function dIdV = localDeriv(obj,V)
-            global invdE Z2 Ei1 Ei2 normalizedDerivatedFermiFunction transportProbability zParam proximityzParam;
+            global invdE Z2 Ei1 Ei2 normalizedDerivatedFermiFunction transportProbability;
             
             intg = 0;
             
@@ -201,12 +201,7 @@ classdef btk_model<handle
                 i_bias = i+Vi;%max(1,min(i+Vi,N));
                 intg = intg + normalizedDerivatedFermiFunction(i)*transportProbability(i_bias);
             end;
-            
-            if V < zParam
-            dIdV = (1 + proximityzParam^2)*intg;
-            else
             dIdV = (1 + Z2)*intg;
-            end;
         end;
         
         function [V,dIdV] = calcDiffChar(obj,hWait,DGZW)
@@ -242,7 +237,7 @@ classdef btk_model<handle
             if W>0
                 dIdV2 = zeros([1 Npoints]);
                 
-                precalculateBar(obj,DGZW(4:6));
+                precalculateBar(obj,DGZW(4:6), DGZW(9:11));
 
                 index = 1;
                 for i=1:n/2
